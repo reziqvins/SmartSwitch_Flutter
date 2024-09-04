@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() => runApp(MyApp());
 
@@ -62,6 +63,7 @@ class _ControlPanelState extends State<ControlPanel> {
   @override
   void initState() {
     super.initState();
+    checkConnectivity();
     startTimer();
   }
 
@@ -71,26 +73,62 @@ class _ControlPanelState extends State<ControlPanel> {
     super.dispose();
   }
 
+  Future<bool> isConnectedToWiFi() async {
+    ConnectivityResult connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult == ConnectivityResult.wifi;
+  }
+
+  void checkConnectivity() async {
+    if (await isConnectedToWiFi()) {
+      print("Connected to Wi-Fi.");
+    } else {
+      showConnectivityAlert();
+    }
+  }
+
+  void showConnectivityAlert() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Tidak Terhubung ke Wifi"),
+          content: Text("Hubungkan ke Wifi DARUSMAN HOME untuk menggunakan fitur ini"),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void startTimer() {
-    // Check every minute for the scheduled time
     timer = Timer.periodic(Duration(seconds: 10), (Timer t) {
       checkSchedule();
     });
   }
 
   void toggleRelay(String action) async {
-    try {
-      final response = await http.get(Uri.parse('$serverUrl/relay/$action'));
-      if (response.statusCode == 200) {
-        print('Relay $action successfully');
-        setState(() {
-          isOn = action == "on";
-        });
-      } else {
-        print('Failed to toggle relay');
+    if (await isConnectedToWiFi()) {
+      try {
+        final response = await http.get(Uri.parse('$serverUrl/relay/$action'));
+        if (response.statusCode == 200) {
+          print('Relay $action successfully');
+          setState(() {
+            isOn = action == "on";
+          });
+        } else {
+          print('Failed to toggle relay');
+        }
+      } catch (e) {
+        print('Error: $e');
       }
-    } catch (e) {
-      print('Error: $e');
+    } else {
+      showConnectivityAlert();
     }
   }
 
@@ -115,10 +153,10 @@ class _ControlPanelState extends State<ControlPanel> {
       setState(() {
         if (isTurnOnTime) {
           turnOnTime = picked;
-          print('Turn on scheduled for ${turnOnTime!.format(context)}');
+          print('Nyalakan pada jam ${turnOnTime!.format(context)}');
         } else {
           turnOffTime = picked;
-          print('Turn off scheduled for ${turnOffTime!.format(context)}');
+          print('Matikan pada jam ${turnOffTime!.format(context)}');
         }
       });
     }
@@ -150,7 +188,7 @@ class _ControlPanelState extends State<ControlPanel> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
-                  'Schedule',
+                  'Atur Jadwal',
                   style: TextStyle(fontSize: 16),
                 ),
               ),
@@ -160,7 +198,7 @@ class _ControlPanelState extends State<ControlPanel> {
                   setState(() {
                     scheduleEnabled = value;
                     if (!scheduleEnabled) {
-                      turnOnTime = null; // Reset the schedule times if scheduling is disabled
+                      turnOnTime = null; 
                       turnOffTime = null;
                     }
                   });
@@ -172,22 +210,22 @@ class _ControlPanelState extends State<ControlPanel> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10.0),
               child: ElevatedButton(
-                onPressed: () => selectTime(context, false),
+                onPressed: () => selectTime(context, true),
                 child: Text(
-                  turnOffTime != null
-                      ? 'Turn On at ${turnOffTime!.format(context)}'
-                      : 'Set Turn On Time',
+                  turnOnTime != null
+                      ? 'Nyalakan pada ${turnOnTime!.format(context)}'
+                      : 'Mengatur Waktu Nyalakan',
                 ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10.0),
               child: ElevatedButton(
-                onPressed: () => selectTime(context, true),
+                onPressed: () => selectTime(context, false),
                 child: Text(
-                  turnOnTime != null
-                      ? 'Turn Off at ${turnOnTime!.format(context)}'
-                      : 'Set Turn Off Time',
+                  turnOffTime != null
+                      ? 'Matikan pada ${turnOffTime!.format(context)}'
+                      : 'Mengatur Waktu Mati',
                 ),
               ),
             ),
@@ -235,7 +273,7 @@ class CircularControl extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Text(
-                isOn ? "Turn On" : "Turn Off",
+                isOn ? "Nyalakan" : "Matikan",
                 style: TextStyle(fontSize: 16),
               ),
             ],
