@@ -5,15 +5,14 @@
 #define RELAY_PIN D1
 #define BUZZER_PIN D2
 #define SWITCH_PIN D3
-#define RESET_PIN D4  // Pin untuk tombol reset
+#define RESET_PIN D4  
 
-ESP8266WebServer server(80);  // Web server object
-String webPage;                // Global variable for the webpage
+ESP8266WebServer server(80);  
+String webPage;              
 
 void setup() {
   Serial.begin(115200);
-  EEPROM.begin(512);  // Initialize EEPROM (size of 512 bytes)
-
+  EEPROM.begin(512);  
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(SWITCH_PIN, INPUT_PULLUP);
@@ -22,7 +21,7 @@ void setup() {
 
   // Periksa apakah tombol reset ditekan
   if (digitalRead(RESET_PIN) == LOW) {
-    // Jika tombol reset ditekan, hapus data SSID dan password dari EEPROM
+    
     resetEEPROM();
     Serial.println("WiFi credentials cleared. Restarting...");
     delay(2000);
@@ -33,11 +32,11 @@ void setup() {
   String savedPassword = readEEPROMString(32, 64);
 
   if (savedSSID != "" && savedPassword != "") {
-    WiFi.mode(WIFI_AP_STA);  // Set mode to Access Point + Station
+    WiFi.mode(WIFI_AP_STA);  
     WiFi.begin(savedSSID.c_str(), savedPassword.c_str());
     Serial.println("Connecting to saved WiFi credentials...");
 
-    // Wait for connection
+    /
     int timeout = 20;  // Timeout dalam 20 detik
     while (WiFi.status() != WL_CONNECTED && timeout > 0) {
       delay(1000);
@@ -51,22 +50,22 @@ void setup() {
       Serial.println(savedSSID);
       Serial.print("IP address: ");
       Serial.println(WiFi.localIP());
-      startWebServer();  // Jika koneksi berhasil, mulai web server
+      startWebServer();  
     } else {
       Serial.println("Failed to connect. Opening Access Point...");
-      startAccessPoint();  // Jika gagal, masuk ke mode AP
+      startAccessPoint();  
     }
   } else {
-    startAccessPoint();  // Jika tidak ada kredensial tersimpan, masuk ke mode AP
+    startAccessPoint();  
   }
 }
 
 void loop() {
-  server.handleClient();  // Handle web requests
+  server.handleClient();  
 
-  // Periksa tombol reset saat loop berjalan
+  
   if (digitalRead(RESET_PIN) == LOW) {
-    // Jika tombol reset ditekan, hapus data SSID dan password dari EEPROM
+   
     resetEEPROM();
     Serial.println("WiFi credentials cleared. Restarting...");
     delay(2000);
@@ -74,12 +73,12 @@ void loop() {
   }
 }
 
-// Serve the main page with the form to enter SSID and Password
+
 void handleRoot() {
   server.send(200, "text/html", webPage);
 }
 
-// Handle saving SSID and password from the form
+
 void handleSaveCredentials() {
   if (server.hasArg("ssid") && server.hasArg("password")) {
     String ssid = server.arg("ssid");
@@ -90,7 +89,7 @@ void handleSaveCredentials() {
     writeEEPROMString(32, password, 64);
     EEPROM.commit();
 
-    // Restart ESP to connect with new credentials
+   
     String response = "<html><body><h1 style='color: #333; text-align: center;'>Saved! Rebooting and connecting to WiFi...</h1>";
     response += "<p style='text-align: center;'>Current IP address will be displayed after connection.</p>";
     response += "</body></html>";
@@ -102,16 +101,16 @@ void handleSaveCredentials() {
   }
 }
 
-// Start ESP in Access Point (AP) mode to serve the webpage
+
 void startAccessPoint() {
-  WiFi.mode(WIFI_AP);  // Set WiFi to Access Point mode
+  WiFi.mode(WIFI_AP);  
   WiFi.softAP("Darusman Home Automation");
 
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
 
-  // Menyimpan HTML ke variabel global
+  
   webPage = "<html><body style='font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center;'>";
   webPage += "<h1 style='color: #333;'>WiFi Setup</h1>";
   webPage += "<p>Connect to this device via Wi-Fi, and enter SSID and password.</p>";
@@ -132,11 +131,11 @@ void startAccessPoint() {
   server.on("/", handleRoot);
   server.on("/save", handleSaveCredentials);
   server.on("/detail", handleDetailPage);
-  server.begin();  // Start the server
+  server.begin();  
   Serial.println("Access Point started and web server running");
 }
 
-// Start web server when connected to WiFi
+
 void startWebServer() {
   IPAddress ip = WiFi.localIP();
   
@@ -193,3 +192,4 @@ void writeEEPROMString(int start, String data, int len) {
     }
   }
 }
+
